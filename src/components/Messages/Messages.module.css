@@ -1,0 +1,43 @@
+.container {
+  width: 72vw;
+  overflow-x: hidden;
+  height: 100vh;
+  background: url("../Main/bg2.jpg");
+  scroll-behavior: smooth;
+}
+.container ::-webkit-scrollbar {
+  display: none;
+}
+.messages {
+  overflow-y: auto;
+  padding: 2rem;
+  padding-top: 5rem;
+  color: white;
+  margin-bottom: 3rem;
+}
+
+.appMessage {
+    text-align: center;
+    margin: 0.5rem;
+}
+
+.messages ::-webkit-scrollbar {
+  display: none;
+}
+.msgInput {
+  /* position: sticky; */
+  bottom: 0px;
+  width: 72vw;
+  position: fixed;
+}
+.noChat{
+  display: flex;
+  width: 72vw;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  color: rgb(108, 108, 108);
+  /* border: 2px solid blue; */
+}

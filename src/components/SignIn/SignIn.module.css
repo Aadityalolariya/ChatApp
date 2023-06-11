@@ -1,0 +1,22 @@
+.container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #272727;
+}
+
+.form{
+    display: flex;
+    flex-direction: column;
+    width: 25vw;
+    gap: 1.3rem;
+    box-sizing: border-box;
+    background-color: #2e2e2e!important;
+    padding: 1.5rem;
+}
+
+.MuiOutlinedInput-notchedOutline{
+    border-color: white!important;
+    color: white!important;
+}
