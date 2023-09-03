@@ -3,10 +3,10 @@ import styles from "./Messages.module.css";
 import Navbar from "../Navbar/Navbar";
 import Message from "./Message/Message";
 import SendIcon from "@mui/icons-material/Send";
-
+import { openChat } from "../../actions/openChat";
 import Typography from "@mui/material/Typography";
 import EditName from "./EditName.js";
-
+import { useSelector, useDispatch } from "react-redux";
 import {
   FormControl,
   IconButton,
@@ -15,10 +15,17 @@ import {
 } from "@mui/material";
 import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { userChat } from "../../actions/userChat";
+import { otherUserChat } from "../../actions/otherUserChat";
 
-export default function Messages({ openChat, setOpenChat }) {
+export default function Messages() {
+  const openChatData = useSelector((state) => state.openChat);
+  const dispatch = useDispatch();
+  const currentUserChatContext = useSelector((state) => state.userChat);
+  const otherUserChatContext = useSelector((state) => state.otherUserChat);
+
   var currentDate = "";
-  const [chat, setChat] = useState([]);
+  // const [chat, setChat] = useState([]);
   const [message, setMessage] = useState("");
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
@@ -36,27 +43,36 @@ export default function Messages({ openChat, setOpenChat }) {
       // console.log(chat);
 
       // create the object for storing the message with timestamp and sender number
-      const newChat = [
-        ...chat,
+      const newChatForCurrentUser = [
+        // ...chat,
+        ...currentUserChatContext,
         { number: userNumber, message: message, timeStamp },
       ];
-      setChat(newChat);
+      // console.log(newChatForCurrentUser);
+
+      const newChatForOtherUser = [
+        // ...chat,
+        ...otherUserChatContext,
+        { number: userNumber, message: message, timeStamp },
+      ];
+      // setChat(newChat);
+      // dispatch(userChat(currentUserChat));
 
       // update the chat array of current user
       await updateDoc(doc(db, "Chats", userNumber), {
-        [openChat.number]: newChat,
+        [openChatData.number]: newChatForCurrentUser,
       });
 
       // update the chat array of user at the other end
-      await updateDoc(doc(db, "Chats", openChat.number), {
-        [userNumber]: newChat,
+      await updateDoc(doc(db, "Chats", openChatData.number), {
+        [userNumber]: newChatForOtherUser,
       });
 
       // scroll to the bottom
       let element = document.getElementById("messages");
       element.scrollTop = element.scrollHeight;
     } catch (error) {
-      console.log(error);
+      // console.log(error);
     }
   };
 
@@ -78,7 +94,7 @@ export default function Messages({ openChat, setOpenChat }) {
 
     // create array with updated name
     const newChatsOfCurrentUser = chatsOfCurrentUser.map((element) => {
-      if (element.name === openChat.name) {
+      if (element.name === openChatData.name) {
         return { name: newName, number: element.number };
       } else {
         return element;
@@ -91,7 +107,9 @@ export default function Messages({ openChat, setOpenChat }) {
     });
 
     // update the openChat state to update the name displayed in navbar
-    setOpenChat((prev) => ({ ...prev, name: newName }));
+    // setOpenChat((prev) => ({ ...prev, name: newName }));.
+    dispatch(openChat({ ...openChatData, name: newName }));
+
     handleClose();
   };
 
@@ -101,23 +119,37 @@ export default function Messages({ openChat, setOpenChat }) {
       doc(db, "Chats", localStorage.getItem("user").split(" ")[0]),
       (doc) => {
         // console.log("Current data: ", doc.data());
-        setChat(doc.data()[openChat.number]);
+        // setChat(doc.data()[openChatData.number]);
+        if(openChatData.number){
+          dispatch(userChat(doc.data()[openChatData.number]));
+          // console.log(doc.data()[openChatData.number]);
+        }
       }
     );
     const userNumber = localStorage.getItem("user").split(" ")[0];
 
     // get the chats of the selected user
     (async () => {
-      const allMessages = (await getDoc(doc(db, "Chats", userNumber))).data();
-      const requiredChats = allMessages[openChat.number];
-      console.log(allMessages);
-      setChat(requiredChats);
+
+      let currentUserChats = [];
+      let otherUserChats = [];
+
+      if (openChatData.number.length === 10) {
+        otherUserChats = (await getDoc(doc(db, "Chats", userNumber))).data()[
+          openChatData.number
+        ];
+        currentUserChats = (
+          await getDoc(doc(db, "Chats", openChatData.number))
+        ).data()[userNumber];
+        dispatch(userChat(currentUserChats));
+        dispatch(otherUserChat(otherUserChats));
+      }
     })();
-  }, [openChat]);
+  }, [openChatData]);
 
   return (
     <div className={styles.container} id="messages">
-      {openChat.number === "" ? (
+      {openChatData.number === "" ? (
         // rendered when no chat is selected (initially)
         <div className={styles.noChat}>
           <Typography
@@ -142,8 +174,8 @@ export default function Messages({ openChat, setOpenChat }) {
         <>
           {/* Navbar of the chat */}
           <Navbar
-            name={openChat.name}
-            number={openChat.number}
+            name={openChatData.name}
+            number={openChatData.number}
             setOpen={setOpen}
           />
 
@@ -156,7 +188,9 @@ export default function Messages({ openChat, setOpenChat }) {
 
           {/* All the chats with selected user */}
           <div className={styles.messages}>
-            {chat?.map((element, index) => {
+            {/* {console.log(currentUserChatContext)} */}
+            {currentUserChatContext?.map((element, index) => {
+              
               const date = element.timeStamp.split("|")[0];
               if (date !== currentDate) {
                 currentDate = date;
@@ -171,11 +205,11 @@ export default function Messages({ openChat, setOpenChat }) {
                           borderRadius: "7px",
                         }}
                       >
-                        {date}{" "}
+                        {date}
                       </span>
                     </div>
                     <Message
-                      title={openChat.name}
+                      title={openChatData.name}
                       message={element.message}
                       sender={element.number}
                       timeStamp={element.timeStamp}
@@ -185,7 +219,7 @@ export default function Messages({ openChat, setOpenChat }) {
               }
               return (
                 <Message
-                  title={openChat.name}
+                  title={openChatData.name}
                   message={element.message}
                   sender={element.number}
                   timeStamp={element.timeStamp}

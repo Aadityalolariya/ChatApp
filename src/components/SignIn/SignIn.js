@@ -2,15 +2,12 @@ import React, { useState } from "react";
 import styles from "./SignIn.module.css";
 import {
   Button,
-  FilledInput,
   FormControl,
   IconButton,
-  Input,
   InputAdornment,
   InputLabel,
   OutlinedInput,
   Paper,
-  TextField,
   Typography,
 } from "@mui/material";
 import CallIcon from "@mui/icons-material/Call";
@@ -30,22 +27,27 @@ export default function SignIn() {
   const navigate = useNavigate();
   const handleSubmit = async () => {
     try {
+      if(details.number.length !== 10){
+        alert('Please enter correct number!')
+        return;
+      }
       const result = await getDoc(doc(db, "Users", details.number));
       if (newUser) {
-        console.log("go in");
+        // console.log("go in");
         if (result.exists()) {
           window.alert("User already present...");
           return;
         } else {
           console.log("go on");
           try {
-            const savedDoc = await setDoc(doc(db, "Users", details.number), {
+            await setDoc(doc(db, "Users", details.number), {
               fname: details.fname,
               sname: details.sname,
               password: details.password,
               chats: [],
             });
             await setDoc(doc(db, 'Chats', details.number), {});
+            await setDoc(doc(db, 'Avatar', details.number), {avatar : ''})
             window.localStorage.setItem(
               "user",
               `${details.number} ${details.fname} ${details.sname}`

@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <>
         <div className={style.container}>
-            <img className={style.logo} id = 'logo' src={logo}></img>
+            <img className={style.logo} id = 'logo' src={logo} alt='NA'></img>
             <div id = "bg" className={style.bg}></div>
         </div>
 

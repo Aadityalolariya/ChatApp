@@ -20,8 +20,10 @@ import User from "./User";
 import { db } from "../firebaseConfig";
 import { doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { openChat } from "../../actions/openChat";
 
-export default function Chat({ setOpenChat }) {
+export default function Chat() {
   const [open, setOpen] = useState(false);
   const [addNumber, setAddNumber] = useState("");
   const [addName, setAddName] = useState("");
@@ -30,7 +32,7 @@ export default function Chat({ setOpenChat }) {
   const [openProfile, setOpenProfile] = useState(false);
   const [avatarImg, setAvatarImg] = useState("");
   const [searchText, setSearchText] = useState("");
-  // const [chatAvatars, setChatAvatars] = useState([]);
+  const dispatch = useDispatch();
 
   const navigate = useNavigate();
 
@@ -61,7 +63,10 @@ export default function Chat({ setOpenChat }) {
       doc(db, "Users", localStorage.getItem("user").split(" ")[0]),
       (doc) => {
         // console.log("Current data: ", doc.data());
-        getChatData();
+        const chatData = doc.data().chats;
+        setChats(chatData);
+        setChatsToDisplay(chatData);
+        // getChatData();
       }
     );
   }, []);
@@ -80,13 +85,15 @@ export default function Chat({ setOpenChat }) {
   const handleCloseProfile = () => setOpenProfile(false);
 
   const handleSearch = () => {
-    if(searchText === ''){
+    if (searchText === "") {
       setChatsToDisplay(chats);
       return;
     }
     setChatsToDisplay((prev) => {
-      return chats.filter((chat) => chat.name.toLocaleLowerCase().includes(searchText.toLocaleLowerCase()))
-    })
+      return chats.filter((chat) =>
+        chat.name.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())
+      );
+    });
   };
 
   // handle adding the chat
@@ -206,13 +213,13 @@ export default function Chat({ setOpenChat }) {
           </div>
 
           {/* Search input field */}
-          <FormControl color="success" sx = {{marginTop : '1rem'}}>
+          <FormControl color="success" sx={{ marginTop: "1rem" }}>
             <InputLabel htmlFor="searchInput" sx={{ color: "white" }}>
               Search
             </InputLabel>
             <Input
               onKeyDown={(e) => {
-                if(e.key === 'Enter'){
+                if (e.key === "Enter") {
                   handleSearch();
                 }
               }}
@@ -221,7 +228,7 @@ export default function Chat({ setOpenChat }) {
               id="searchInput"
               inputProps={{ style: { color: "white" } }}
               endAdornment={
-                <InputAdornment>
+                <InputAdornment position="end">
                   <IconButton onClick={handleSearch}>
                     <SearchIcon sx={{ color: "white" }} />
                   </IconButton>
@@ -238,11 +245,9 @@ export default function Chat({ setOpenChat }) {
                 return (
                   <div
                     onClick={(e) => {
-                      setOpenChat({
-                        name: element.name,
-                        number: element.number,
-                      });
-                      console.log("Changed");
+                      dispatch(
+                        openChat({ name: element.name, number: element.number })
+                      );
                     }}
                     key={`user${index}`}
                   >

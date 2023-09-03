@@ -5,7 +5,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import { db } from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 const Navbar = ({ name, setOpen, number }) => {
-  console.log(number);
+  // console.log(number);
   const [avatarImg, setAvatarImg] = useState("");
 
   useEffect(() => {

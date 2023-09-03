@@ -14,7 +14,8 @@ export default function User({ name, lastMsgTime, lastMsg, number }) {
   useEffect(() => {
     const getAvatarImage = async () => {
       const fetchedData = (await getDoc(doc(db, 'Avatar', number))).data();
-      setAvatarImg(fetchedData.avatar);
+      console.log(fetchedData);
+      setAvatarImg(fetchedData?.avatar);
     }
     getAvatarImage();
   }, [])

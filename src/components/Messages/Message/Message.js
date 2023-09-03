@@ -1,7 +1,6 @@
 import React from 'react'
 import styles from './Message.module.css';
 
-const details = {title : 'name', message : 'this is the message', time : '10:00AM'}
 export default function Message({title, message, timeStamp, sender}) {
   let myMessage = false;
   if(sender === localStorage.getItem('user').split(' ')[0]){
