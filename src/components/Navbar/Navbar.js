@@ -10,33 +10,35 @@ const Navbar = ({ name, setOpen, number }) => {
 
   useEffect(() => {
     // fetch the avatar of selected chat user
-    const getAvatarImage = async () => {
-      const fetchedData = (await getDoc(doc(db, "Avatar", number))).data();
-      setAvatarImg(fetchedData.avatar);
-    };
-    getAvatarImage();
-  }, [number]);
+    // const getAvatarImage = async () => {
+    //   const fetchedData = (await getDoc(doc(db, "Avatar", number))).data();
+    //   setAvatarImg(fetchedData.avatar);
+    // };
+    // getAvatarImage();
+  }, []);
 
   return (
     <>
-      <div className={styles.container}>
-        {/* avatar, name and number of selected chat user */}
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <Avatar sx={{ backgroundColor: "#373737" }} src={avatarImg} />
-          <div className={styles.name}>{name}</div>
-          <span style={{ color: "#979797" }}>({number})</span>
-        </div>
+      <div className={styles.navbar}>
+        <div className={styles.container}>
+          {/* avatar, name and number of selected chat user */}
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <Avatar sx={{ backgroundColor: "#373737" }} src={avatarImg} />
+            <div className={styles.name}>{name}</div>
+            <span style={{ color: "#979797" }}>({number})</span>
+          </div>
 
-        {/* Button of edit selected user name, clear chat and deleted user */}
-        <div>
-          <IconButton
-            onClick={() => {
-              setOpen(true);
-            }}
-          >
-            <EditIcon color="warning" />
-          </IconButton>
+          {/* Button of edit selected user name, clear chat and deleted user */}
+          <div>
+            <IconButton
+              onClick={() => {
+                setOpen(true);
+              }}
+            >
+              <EditIcon color="warning" />
+            </IconButton>
 
+          </div>
         </div>
       </div>
     </>

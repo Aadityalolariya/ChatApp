@@ -1,0 +1,56 @@
+.mainContainer {
+    padding: 2rem;
+    padding-top: 5rem;
+    color: white;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    height: calc(100vh - 6rem);
+
+    display: flex;
+    flex-direction: row;
+}
+
+
+
+.mainContainer ::-webkit-scrollbar {
+  display: none;
+}
+
+
+.messagesWithThread, .threads{
+    overflow-y: auto;
+    flex: 0 0 50%;
+}
+
+.threads{
+  margin-left: 1rem;
+  margin-right: 1rem;
+  border: 1px solid rgb(80, 80, 80);
+  background-color: #27272783;
+  border-radius: 1rem;
+
+  display : flex;
+  flex-direction: column;
+}
+.threadList{
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  flex-grow: 1;
+}
+.threadHeader{
+  position: sticky;
+  top: 0px;
+  background-color: #272727;
+  z-index: 1;
+  padding: 1rem;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.messageInput{
+  position: sticky;
+  bottom: 0px;
+}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
 import styles from "./SignIn.module.css";
 import {
   Button,
@@ -15,76 +15,164 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import { db } from "../firebaseConfig";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { SIGN_UP_API, LOGIN_API } from '../../constants'
+import { call_api } from '../../callwebservice';
 import { useNavigate } from 'react-router-dom';
+import { WebSocketContext, CurrentChatContext, MessagesContext, CurrentUserContext } from '../../context/context.js';
+import Cookies from "js-cookie";
+
 const initialState = { fname: "", sname: "", password: "", number: "" };
 
 export default function SignIn() {
   const [visible, setVisible] = useState(false);
   const [newUser, setNewUser] = useState(false);
   const [details, setDetails] = useState({ ...initialState });
+  const socketRef = useContext(WebSocketContext);
+  const { currentChat, setCurrentChat } = useContext(CurrentChatContext);
+  const { messages, setMessages } = useContext(MessagesContext);
+  const { currentUser, setcurrentUser } = useContext(CurrentUserContext);
+  
   const navigate = useNavigate();
-  const handleSubmit = async () => {
-    try {
-      if(details.number.length !== 10){
-        alert('Please enter correct number!')
-        return;
-      }
-      const result = await getDoc(doc(db, "Users", details.number));
-      if (newUser) {
-        // console.log("go in");
-        if (result.exists()) {
-          window.alert("User already present...");
-          return;
-        } else {
-          console.log("go on");
-          try {
-            await setDoc(doc(db, "Users", details.number), {
-              fname: details.fname,
-              sname: details.sname,
-              password: details.password,
-              chats: [],
-            });
-            await setDoc(doc(db, 'Chats', details.number), {});
-            await setDoc(doc(db, 'Avatar', details.number), {avatar : ''})
-            window.localStorage.setItem(
-              "user",
-              `${details.number} ${details.fname} ${details.sname}`
-            );
-            setDetails(initialState);
-            navigate('/main')
-          } catch (error) {
-            console.log(error);
-          }
-        }
-      } else {
-        if (result.exists()) {
-          const correctDetails = result.data();
-          const correctPassword = correctDetails.password;
-          if(correctPassword !== details.password){
-            window.alert('Wrong credentials...');
-            return;
-          }
-          console.log("Logged in");
-          window.localStorage.setItem(
-            "user",
-            `${details.number} ${correctDetails.fname} ${correctDetails.sname}`
-          );
-          setDetails(initialState);
-          navigate('/main')
 
-        } else {
-          window.alert("User not found!");
-          return;
-        }
-      }
-    } catch (error) {
-      console.log(error);
+  useEffect(() => {
+    if(Cookies.get("User") != null && Cookies.get("token") != null){
+      navigate("/main");
     }
-  };
+  }, [])
+  
 
+  const handleSubmit = async () => {
+    console.log("In handle submit...")
+    // for sign up request
+    if(newUser){
+      console.log("handle submit - new user...")
+      if(details['fname'].length > 0 && details['sname'].length > 0  && details['password'].length > 0 &&  details['number'].length == 10){
+        console.log("firing signup api for new user...")
+        let params = {
+          "password": details['password'],
+          "first_name": details['fname'],
+          "last_name": details['sname'],
+          "phone_number": details['number']
+        };
+        let response = await call_api.post(SIGN_UP_API, params);
+        console.log(response);
+        if(response.status == 200 && response.data['status'] == 'success'){
+          
+          console.log("Successfully signed up:", response.data);
+          let data = response.data['result']
+          let token = data['token']
+          Cookies.set("token", token)
+          let User = {
+            "id": data['id'],
+            "first_name": data['first_name'],
+            "last_name": data['last_name'],
+            "phone_number": data['phone_number']
+          }
+          setcurrentUser(User);
+          Cookies.set("User", JSON.stringify(User));
 
+          socketRef.current = new WebSocket("ws://localhost:8000/ws?user_id=" + data['id']);
+
+          socketRef.current.onopen = () => {
+          console.log("✅ WebSocket connected");
+          };
+
+          socketRef.current.onerror = (err) => {
+          console.error("❌ WebSocket error:", err);
+          };
+
+          socketRef.current.onclose = (e) => {
+          console.log("🔌 WebSocket closed:", e.reason);
+          };
+
+          socketRef.current.onmessage = (e) => {
+            let message = e.data;
+            try{
+              let decoded_message = JSON.parse(e.data);
+              console.log("decoded_message: ", decoded_message);
+              console.log(" currentChat: ", currentChat);
+              let topic = decoded_message['topic'];
+              let data = decoded_message['data'];
+              if(topic == 'message_sent'){
+                if(Number(currentChat['id']) == Number(data['chat_id'])){
+                  setMessages((prev) => [...prev, data]);
+                }
+              }
+            }
+            catch(err) {
+              console.log("error while decoding received message: ", err)
+            }
+          }
+        }
+        else{
+          console.log("an error occurred")
+        }
+      }
+    }
+    else{
+      let params = {
+        "password": details['password'],
+        "phone_number": details['number']
+      };
+      let response = await call_api.post(LOGIN_API, params);
+      console.log(response);
+      if(response.status == 200 && response.data['status'] == 'success'){
+        console.log("Successfully signed up:", response.data);
+        let data = response.data['result']
+        let token = data['token']
+        Cookies.set("token", token)
+        let User = {
+          "id": data['id'],
+          "first_name": data['first_name'],
+          "last_name": data['last_name'],
+          "phone_number": data['phone_number']
+        }
+        setcurrentUser(User);
+        Cookies.set("User", JSON.stringify(User));
+
+        socketRef.current = new WebSocket("ws://localhost:8000/ws?user_id=" + data['id']);
+
+        socketRef.current.onopen = () => {
+        console.log("✅ WebSocket connected");
+        };
+
+        socketRef.current.onerror = (err) => {
+        console.error("❌ WebSocket error:", err);
+        };
+
+        socketRef.current.onclose = (e) => {
+        console.log("🔌 WebSocket closed:", e.reason);
+        };
+
+        socketRef.current.onmessage = (e) => {
+          let message = e.data;
+          try{
+            let decoded_message = JSON.parse(e.data);
+            console.log("decoded_message: ", decoded_message);
+            console.log(" currentChat: ", currentChat);
+            let topic = decoded_message['topic'];
+            let data = decoded_message['data'];
+            if(topic == 'message_sent'){
+              if(Number(currentChat['id']) == Number(data['chat_id'])){
+                setMessages((prev) => [...prev, data]);
+              }
+            }
+          }
+          catch(err) {
+            console.log("error while decoding received message: ", err)
+          }
+        }
+      }
+      else{
+        console.log("an error occurred")
+      }
+    }
+
+    if (Cookies.get("User") != null && Cookies.get("token") != null){
+      navigate("/main");
+    }
+  }
+  
   return (
     <>
       <div className={styles.container}>
@@ -205,7 +293,7 @@ export default function SignIn() {
             color="info"
             fullWidth
             variant="outlined"
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
           >
             Submit
           </Button>

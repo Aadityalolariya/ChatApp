@@ -4,21 +4,34 @@
 .parentContainer{
     display: flex;
     width: 100%;
-    /* border: 2px solid blue; */
+    /* border: 1px solid blue; */
     justify-content: flex-start;
 }
 
+.wrapper{
+    display: flex;
+    flex-direction: column;
+    /* border: 1px solid red; */
+    max-width: 90%;
+}
 
-.container{
+.messageContainer{
     background-color: #373737;
-    max-width: 40%;
-    width: max-content;
-    min-width: 6rem;
+    word-wrap: break-word;
+    /* min-width: 6rem; */
     padding: 0.6rem;
     box-sizing: border-box;
     margin-top: 0.5rem;
     border-radius: 7px;
-    
+    /* border: 1px solid green; */
+}
+
+.threadIcon{
+    color: rgb(148, 148, 148);
+}
+
+.messageBase{
+    display: flex;
 }
 
 .title{
@@ -28,6 +41,8 @@
 
 .message{
     font-family: 'Source Sans Pro', sans-serif;
+    width: 100%;
+    word-wrap: break-word;
 }
 
 .time{
@@ -37,5 +52,4 @@
     font-size: 12px;
     font-family: 'Source Sans Pro', sans-serif;
     color: white;
-
 }

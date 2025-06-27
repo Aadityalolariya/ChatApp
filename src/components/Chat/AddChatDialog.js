@@ -10,7 +10,7 @@ const style = {
   color: "#c7c7c7",
 };
 export default function AddChatDialog({
-  open,
+  addChatDialogBoxOpen,
   handleClose,
   addNumber,
   addName,
@@ -19,11 +19,11 @@ export default function AddChatDialog({
   handleAddChat,
 }) {
   return (
-    <Dialog open={open} onClose={handleClose}>
+    <Dialog open={addChatDialogBoxOpen} onClose={handleClose}>
       <DialogTitle variant="h5" sx={style}>Add chat</DialogTitle>
       <DialogContent sx={style}>
         <DialogContentText sx={{ color: "#c7c7c7" }}>
-          Enter the phone number and name of new chat user.
+          Enter the phone number or email of the user.
         </DialogContentText>
         <TextField
           inputProps={{ style: { color: "#c7c7c7" } }}
@@ -32,22 +32,8 @@ export default function AddChatDialog({
           onChange={(e) => setAddNumber(e.target.value)}
           autoFocus
           margin="dense"
-          id="number"
-          label="Phone number"
-          type="tel"
-          fullWidth
-          variant="outlined"
-          sx={{ marginTop: "1rem" }}
-        />
-        <TextField
-          inputProps={{ style: { color: "#c7c7c7" } }}
-          InputLabelProps={{ style: { color: "#c7c7c7" } }}
-          value={addName}
-          onChange={(e) => setAddName(e.target.value)}
-          autoFocus
-          margin="dense"
           id="name"
-          label="User name"
+          label="Phone number / Email"
           type="text"
           fullWidth
           variant="outlined"

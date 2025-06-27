@@ -12,19 +12,20 @@ const details = {
 export default function User({ name, lastMsgTime, lastMsg, number }) {
   const [avatarImg, setAvatarImg] = useState('');
   useEffect(() => {
-    const getAvatarImage = async () => {
-      const fetchedData = (await getDoc(doc(db, 'Avatar', number))).data();
-      console.log(fetchedData);
-      setAvatarImg(fetchedData?.avatar);
-    }
-    getAvatarImage();
+    console.log("name:", name)
+    // const getAvatarImage = async () => {
+    //   const fetchedData = (await getDoc(doc(db, 'Avatar', number))).data();
+    //   console.log(fetchedData);
+    //   setAvatarImg(fetchedData?.avatar);
+    // }
+    // getAvatarImage();
   }, [])
   
   return (
     <>
       <div className={styles.user}>
         <div style={{ display: "flex", gap: "1rem" }}>
-          <Avatar sx = {{backgroundColor : '#373737'}} src={avatarImg}></Avatar>
+          {/* <Avatar sx = {{backgroundColor : '#373737'}} src={avatarImg}></Avatar> */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div>{name}</div>
             <div style={{ fontSize: "small", color: "#aaaaaa" }}>

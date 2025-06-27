@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import Backdrop from "@mui/material/Backdrop";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import Fade from "@mui/material/Fade";
 import Typography from "@mui/material/Typography";
 import { Avatar, IconButton, Tooltip } from "@mui/material";
+import { CurrentUserContext } from '../../context/context.js';
+
 import EditIcon from "@mui/icons-material/Edit";
-import EditAvatar from "./EditAvatar";
+// import EditAvatar from "./EditAvatar";
 const profileStyle = {
   position: "absolute",
   bottom: "0%",
@@ -32,7 +34,8 @@ export default function Profile({
   setAvatarImg,
 }) {
   const [openEditAvatar, setOpenEditAvatar] = useState(false);
-
+  const { currentUser, setcurrentUser } = useContext(CurrentUserContext);
+  
   const handleMouseLeave = () => {
     let avatar = document.getElementById("dp");
     avatar.style.opacity = 1;
@@ -44,11 +47,11 @@ export default function Profile({
 
   return (
     <>
-      <EditAvatar
+      {/* <EditAvatar
         setOpenEditAvatar={setOpenEditAvatar}
         openEditAvatar={openEditAvatar}
         setAvatarImg={setAvatarImg}
-      />
+      /> */}
       <Modal
         aria-labelledby="transition-modal-title"
         aria-describedby="transition-modal-description"
@@ -85,9 +88,7 @@ export default function Profile({
               sx={{ mt: 2 }}
               variant="h6"
             >
-              {`Name : ${localStorage.getItem("user").split(" ")[1]} ${
-                localStorage.getItem("user").split(" ")[2]
-              }`}
+              {`Name : ${currentUser.first_name} ${currentUser.last_name}`}
               <Tooltip title = 'Edit name' placement="right" arrow>
                 <IconButton sx={{ marginLeft: "1rem" }}>
                   <EditIcon color="warning" />
@@ -95,7 +96,7 @@ export default function Profile({
               </Tooltip>
             </Typography>
             <Typography sx={{ mt: 2 }} variant="h6">
-              {`Number : ${localStorage.getItem("user").split(" ")[0]}`}
+              {`Number : ${currentUser.phone_number}`}
             </Typography>
           </Box>
         </Fade>

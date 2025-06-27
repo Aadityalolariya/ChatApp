@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import styles from "./Chat.module.css";
+import { FETCH_CHATS, SEARCH_USER } from "../../constants.js";
+import { call_api } from "../../callwebservice.js";
 import {
   Avatar,
   FormControl,
@@ -15,70 +17,60 @@ import AddIcon from "@mui/icons-material/Add";
 import AddChatDialog from "./AddChatDialog.js";
 import SearchIcon from "@mui/icons-material/Search";
 import Profile from "./Profile.js";
-
+import Cookies from "js-cookie";
 import User from "./User";
 import { db } from "../firebaseConfig";
 import { doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { openChat } from "../../actions/openChat";
+import { OPEN_CHAT, CREATE_CHAT, LOGOUT_USER } from "../../constants.js";
+import {
+  MessagesContext,
+  ChatsContext,
+  CurrentChatContext,
+  CurrentUserContext,
+  ParentMessageContext
+} from "../../context/context.js";
 
 export default function Chat() {
-  const [open, setOpen] = useState(false);
+  const [addChatDialogBoxOpen, setAddChatDialogBoxOpen] = useState(false);
   const [addNumber, setAddNumber] = useState("");
   const [addName, setAddName] = useState("");
-  const [chats, setChats] = useState([]);
   const [chatsToDisplay, setChatsToDisplay] = useState([]);
   const [openProfile, setOpenProfile] = useState(false);
   const [avatarImg, setAvatarImg] = useState("");
   const [searchText, setSearchText] = useState("");
-  const dispatch = useDispatch();
+  const { chats, setChats } = useContext(ChatsContext);
+  const { messages, setMessages } = useContext(MessagesContext);
+  const { currentChat, setCurrentChat } = useContext(CurrentChatContext);
+  const { currentUser, setCurrentUser } = useContext(CurrentUserContext);
+  const {parentMessage, setParentMessage} = useContext(ParentMessageContext);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userNumber = localStorage.getItem("user").split(" ")[0];
-
-    // Getting profile picture of the user
-    const getProfilePicture = async () => {
-      const fetchedData = await getDoc(doc(db, "Avatar", userNumber));
-      const profilePic = fetchedData.data().avatar;
-      setAvatarImg(profilePic);
-    };
-
-    // Getting the chats when component is rendered
-    const getChatData = async () => {
-      const fetchedData = await getDoc(doc(db, "Users", userNumber));
-      const chatData = fetchedData.data().chats;
-
-      // set the chats state to the fetched chats
-      setChats(chatData);
-      setChatsToDisplay(chatData);
-    };
-
-    getProfilePicture();
-    getChatData();
-
-    onSnapshot(
-      doc(db, "Users", localStorage.getItem("user").split(" ")[0]),
-      (doc) => {
-        // console.log("Current data: ", doc.data());
-        const chatData = doc.data().chats;
-        setChats(chatData);
-        setChatsToDisplay(chatData);
-        // getChatData();
+    (async () => {
+      let response = await call_api.get(FETCH_CHATS);
+      console.log("fetch chats response: ", response);
+      if (response.status == 200 && response.data["status"] == "success") {
+        let fetched_chats = response.data["result"]["chats"];
+        setChats(fetched_chats);
+        console.log("chats: ", chats);
+      } else {
+        setChats([]);
       }
-    );
+    })();
   }, []);
 
   // open add chat
   const handleClickOpen = () => {
-    setOpen(true);
+    setAddChatDialogBoxOpen(true);
   };
 
   // close add chat
   const handleClose = () => {
-    setOpen(false);
+    setAddChatDialogBoxOpen(false);
   };
 
   const handleOpenProfile = () => setOpenProfile(true);
@@ -99,53 +91,85 @@ export default function Chat() {
   // handle adding the chat
   const handleAddChat = async () => {
     handleClose();
-    if (addNumber.length !== 10 || addName.length === 0) {
+    if (addNumber.length !== 10) {
       alert("Please enter valid details!");
       return;
     }
     try {
-      const userNumber = window.localStorage.getItem("user").split(" ")[0];
-
       // Get the current user and user to be added details
-      const result = await getDoc(doc(db, `Users`, userNumber));
-      const userToBeAdded = await getDoc(doc(db, "Users", addNumber));
-
-      // If the user to be added doesn't exist then display error
-      if (!userToBeAdded.exists()) {
-        alert("User not found...");
-        setAddNumber("");
-        setAddName("");
-        return;
-      }
-
-      let resultData = result.data();
-      let userToBeAddedData = userToBeAdded.data();
-
-      // push the name and number of the user to be added in current user
-      resultData.chats.push({ number: addNumber, name: addName });
-
-      // push the name and number of the current user in user to be added
-      userToBeAddedData.chats.push({ number: userNumber, name: userNumber });
+      let payload = {
+        search: addNumber,
+      };
+      let response = await call_api.post(SEARCH_USER, payload);
 
       setAddNumber("");
       setAddName("");
 
-      // set both the documents to the updated chats array and add empty array in Chats collection
-      await setDoc(doc(db, "Users", userNumber), {
-        ...resultData,
-      });
-      await updateDoc(doc(db, "Chats", userNumber), {
-        [addNumber]: [],
-      });
+      if (response.status == 400 || response.data["status"] != "success") {
+        // If the user to be added doesn't exist then display error
+        alert("User not found...");
+        return;
+      } else {
+        setAddChatDialogBoxOpen(false);
 
-      await setDoc(doc(db, "Users", addNumber), {
-        ...userToBeAddedData,
-      });
-      await updateDoc(doc(db, "Chats", addNumber), {
-        [userNumber]: [],
-      });
+        // create chat
+        let currentUser = Cookies.get("User");
+        currentUser = JSON.parse(currentUser);
+        let addedUserId = Number(response.data["result"]["id"]);
+        payload = {
+          user_ids: [addedUserId, Number(currentUser["id"])],
+          is_group_chat: false,
+        };
+        response = await call_api.post(CREATE_CHAT, payload);
+        if (response.status == 200 && response.data["status"] == "success") {
+          let chatObj = {
+            id: response.data["result"]["id"],
+            is_group_chat: false,
+            chat_name: null,
+            created_on: response.data["result"]["created_on"],
+            admin_user_id: null,
+          };
+          setChats((prev) => [chatObj, ...prev]);
+        } else {
+          console.log("error in creating chat");
+        }
+      }
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const handleChatClick = async (chat_id) => {
+    // set current chat
+    for (let i = 0; i < chats.length; i++) {
+      if (chats[i]["id"] == chat_id) {
+        setCurrentChat(chats[i]);
+        setParentMessage(null);
+        
+        console.log("current chat: ", chats[i]);
+        break;
+      }
+    }
+
+    // fetch messages
+    let url = `${OPEN_CHAT}/${chat_id}`;
+    let response = await call_api.get(url);
+    if (response.status == 200 && response.data["status"] == "success") {
+      let result = response.data["result"]["messages"];
+      setMessages(result);
+    } else {
+      console.log("error in fetching messages");
+      setMessages([]);
+    }
+  };
+
+  const handleLogOutClick = async () => {
+    let url = LOGOUT_USER + `/${currentUser.id}`;
+    let response = await call_api.get(url);
+    if (response.status == 200 && response.data["status"] == "success") {
+      Cookies.remove("token");
+      Cookies.remove("User");
+      navigate("/signin");
     }
   };
 
@@ -154,7 +178,7 @@ export default function Chat() {
       <div className={styles.mainContainer}>
         {/* Dialog box displayed when new user is to be added  */}
         <AddChatDialog
-          open={open}
+          addChatDialogBoxOpen={addChatDialogBoxOpen}
           handleClose={handleClose}
           addNumber={addNumber}
           addName={addName}
@@ -172,16 +196,16 @@ export default function Chat() {
         />
 
         {/* Side bar component */}
-        <div className={styles.sidebar}>
+        {/* <div className={styles.sidebar}>
           <Tooltip title="Profile" placement="right" arrow>
-            <IconButton onClick={handleOpenProfile}>
+            <IconButton onClick={() => {}}>
               <Avatar
                 sx={{
                   width: "2rem",
                   height: "2rem",
                   backgroundColor: "#373737",
                 }}
-                src={avatarImg}
+                src={""}
               />
             </IconButton>
           </Tooltip>
@@ -189,73 +213,66 @@ export default function Chat() {
           <Tooltip title="Logout" placement="right" arrow>
             <IconButton
               color="error"
-              onClick={() => {
-                localStorage.removeItem("user");
-                navigate("/signin");
-              }}
+              onClick={() => {}}
             >
               <LogoutIcon color="error" />
             </IconButton>
           </Tooltip>
-        </div>
+        </div> */}
 
         {/* Components having all the chat list */}
-        <div className={styles.container}>
-          <div className={styles.header}>
-            <div>Chats</div>
-            <Chip
-              avatar={<AddIcon style={{ color: "white" }} />}
-              label="Add Chat"
-              color="info"
-              onClick={handleClickOpen}
-              sx={{ fontWeight: "300" }}
-            />
-          </div>
+        <div className={styles.header}>
+          <div>Chats</div>
+          <Chip
+            avatar={<AddIcon style={{ color: "white" }} />}
+            label="Add Chat"
+            color="info"
+            onClick={handleClickOpen}
+            sx={{ fontWeight: "300" }}
+          />
+        </div>
 
-          {/* Search input field */}
-          <FormControl color="success" sx={{ marginTop: "1rem" }}>
-            <InputLabel htmlFor="searchInput" sx={{ color: "white" }}>
-              Search
-            </InputLabel>
-            <Input
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSearch();
-                }
-              }}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              id="searchInput"
-              inputProps={{ style: { color: "white" } }}
-              endAdornment={
-                <InputAdornment position="end">
-                  <IconButton onClick={handleSearch}>
-                    <SearchIcon sx={{ color: "white" }} />
-                  </IconButton>
-                </InputAdornment>
+        {/* Search input field */}
+        <FormControl color="success" sx={{ marginTop: "1rem" }}>
+          <InputLabel htmlFor="searchInput" sx={{ color: "white" }}>
+            Search
+          </InputLabel>
+          <Input
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearch();
               }
-            ></Input>
-          </FormControl>
+            }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            id="searchInput"
+            inputProps={{ style: { color: "white" } }}
+            endAdornment={
+              <InputAdornment position="end">
+                <IconButton onClick={handleSearch}>
+                  <SearchIcon sx={{ color: "white" }} />
+                </IconButton>
+              </InputAdornment>
+            }
+          ></Input>
+        </FormControl>
 
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
-          >
-            {chats &&
-              chatsToDisplay.map((element, index) => {
-                return (
-                  <div
-                    onClick={(e) => {
-                      dispatch(
-                        openChat({ name: element.name, number: element.number })
-                      );
-                    }}
-                    key={`user${index}`}
-                  >
-                    <User name={element.name} number={element.number} />
-                  </div>
-                );
-              })}
-          </div>
+        <div className={styles.chatlist}>
+          {chats &&
+            chats.map((element, index) => {
+              return (
+                <div
+                  onClick={() => handleChatClick(element["id"])}
+                  key={`user${index}`}
+                >
+                  <User
+                    name={element["chat_name"]}
+                    number={element["chat_name"]}
+                    key={index}
+                  />
+                </div>
+              );
+            })}
         </div>
       </div>
     </>
