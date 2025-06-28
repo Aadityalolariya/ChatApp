@@ -53,3 +53,21 @@
     font-family: 'Source Sans Pro', sans-serif;
     color: white;
 }
+
+.documentContainer{
+    border-radius: 7px;
+    padding: 0.6rem;
+}
+
+.documentMainBody{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.documentDetails{
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}

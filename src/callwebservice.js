@@ -3,10 +3,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 const call_api = axios.create({
-  baseURL: BE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: BE_URL
 });
 
 // Add a request interceptor

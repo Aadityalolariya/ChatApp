@@ -1,17 +1,21 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useRef } from "react";
 import styles from "./Messages.module.css";
 import Navbar from "../Navbar/Navbar";
 import { openChat } from "../../actions/openChat";
-import { MessagesContext, CurrentChatContext, WebSocketContext } from "../../context/context.js";
+import {
+  MessagesContext,
+  CurrentChatContext,
+  WebSocketContext,
+} from "../../context/context.js";
 import Typography from "@mui/material/Typography";
 import EditName from "./EditName.js";
 import Cookies from "js-cookie";
 import { useSelector, useDispatch } from "react-redux";
 
-import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { call_api } from "../../callwebservice.js";
-import { CREATE_MESSAGE } from '../../constants.js';
+import { CREATE_MESSAGE, ATTACHED_FILE_LIMIT_MB, UPLOAD_DOCUMENT, GET_DOCUMENT } from "../../constants.js";
 import MessageList from "./MessageList/MessageList.js";
 import InputMessage from "./InputMessage.js";
 
@@ -19,53 +23,114 @@ export default function Messages() {
   const openChatData = useSelector((state) => state.openChat);
   const dispatch = useDispatch();
   const { messages, setMessages } = useContext(MessagesContext);
-  const { currentChat, setCurrentChat  } = useContext(CurrentChatContext);
+  const { currentChat, setCurrentChat } = useContext(CurrentChatContext);
   const socketRef = useContext(WebSocketContext);
-  
+
   var currentDate = "";
   // const [chat, setChat] = useState([]);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(""); // current typed message
+  const [attachedFile, setAttachedFile] = useState(null); // currently attached file
+  const fileRef = useRef(null); // currently attached file ref
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
 
   const handleSendMessage = async () => {
     try {
-
-      let payload = {
-        "chat_id": currentChat['id'],
-        "content": message,
-        "document_id": null,
-        "parent_message_id": null,
-        "reference_message_id":null
-      };
-      let url = `${CREATE_MESSAGE}/${currentChat['id']}`;
-      let response = await call_api.post(url, payload);
+      let url = "";
+      let documentId = null;
+      // if document is attached, first upload it and get document id to send in message
+      if(attachedFile != null){
+        url = `${UPLOAD_DOCUMENT}`;
+        const formData = new FormData();
+        formData.append("file", attachedFile);
+        let response = await call_api.postForm(url, formData);
+        if (response.status === 200 && response.data["status"] === "success") {
+          documentId = response.data['result']['document_id']
+          console.log("file upload succeed: ", documentId)
+        }
+        else{
+          console.log("file upload failed")
+        }
+      }
       
+      let payload = {
+        chat_id: currentChat["id"],
+        content: message,
+        document_id: documentId,
+        parent_message_id: null,
+        reference_message_id: null,
+      };
+
+      url = `${CREATE_MESSAGE}/${currentChat["id"]}`;
+      let response = await call_api.post(url, payload);
+
       let currentUser = Cookies.get("User");
       currentUser = JSON.parse(currentUser);
-      
-      if(response.status === 200 && response.data['status'] === 'success'){
+
+      if (response.status === 200 && response.data["status"] === "success") {
         let currentMessageObj = {
-          "chat_id": currentChat['id'],
-          "content": message,
-          "created_on": response.data['result']['created_on'],
-          "parent_message_id": null,
-          "sender_id": currentUser['id']
+          chat_id: currentChat["id"],
+          content: message,
+          created_on: response.data["result"]["created_on"],
+          parent_message_id: null,
+          sender_id: currentUser["id"],
+          document_id: documentId
         };
+        if(documentId != null){
+          currentMessageObj['document_name'] = attachedFile['name'];
+          currentMessageObj['document_size'] = attachedFile['size'];
+        }
         setMessages((prev) => [...prev, currentMessageObj]);
       }
 
       setMessage("");
+      setAttachedFile(null);
+
       setTimeout(() => {
         // scroll to the bottom
         let element = document.getElementById("messages");
-        element.scrollTop = element.scrollHeight ;
+        element.scrollTop = element.scrollHeight;
       }, 500);
-      
     } catch (error) {
       // console.log(error);
     }
   };
+
+  
+  const handleDownloadFile = async (document_id, document_name) => {
+    let url = `${GET_DOCUMENT}/${document_id}`;
+    let response = await call_api.get(url, {
+      responseType: "blob",
+    });
+    console.log("get document: ", response.data)
+    const blob = new Blob([response.data]);
+    url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = document_name;
+    link.click();
+    // window.open(url, "_blank");
+
+    // window.URL.revokeObjectURL(url);
+  }
+
+
+  const handleAttachDoc = () => {
+    fileRef.current.click();
+  };
+
+  const handleFileChange = (event) => {
+    // currently one 1 file at a time is supported. In future, changes to be done for multifile support
+    const file = event.target.files[0];
+    if (file) {
+      setAttachedFile(file);
+      console.log("File saved in state: ", file);
+    }
+  };
+
+  const handleUnselectFile = () => {
+    setAttachedFile(null);
+  }
 
   const handleNameChange = async () => {
     let newName = document.getElementById("newName").value;
@@ -106,12 +171,11 @@ export default function Messages() {
 
   useEffect(() => {
     // listen the changes made at current user's document in Chat collection
-    
   }, []);
 
   return (
     <div className={styles.container}>
-      {(currentChat == null) ? (
+      {currentChat == null ? (
         // rendered when no chat is selected (initially)
         <div className={styles.noChat}>
           <Typography
@@ -142,14 +206,29 @@ export default function Messages() {
           />
 
           <div className={styles.mainContainer}>
-            <Navbar name={currentChat['chat_name']}
-              number={currentChat['phone_number']}
-              setOpen={setOpen} 
+            <Navbar
+              name={currentChat["chat_name"]}
+              number={currentChat["phone_number"]}
+              setOpen={setOpen}
             />
 
-            <MessageList messages={messages} handleSendMessage={handleSendMessage}/>
+            <MessageList
+              handleDownloadFile={handleDownloadFile}
+              messages={messages}
+              handleSendMessage={handleSendMessage}
+            />
 
-            <InputMessage className={styles.messageInput} handleSendMessage={handleSendMessage} setMessage={setMessage} message={message}/>
+            <InputMessage
+              className={styles.messageInput}
+              handleAttachDoc={handleAttachDoc}
+              handleFileChange={handleFileChange}
+              handleUnselectFile={handleUnselectFile}
+              handleSendMessage={handleSendMessage}
+              setMessage={setMessage}
+              message={message}
+              fileRef={fileRef}
+              attachedFile={attachedFile}
+            />
           </div>
         </>
       )}

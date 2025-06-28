@@ -9,7 +9,7 @@ import { CREATE_MESSAGE } from '../../../constants'
 import { call_api } from '../../../callwebservice';
 import Cookies from 'js-cookie';
 
-export default function MessageList({messages, handleSendMessage}) {
+export default function MessageList({messages, handleDownloadFile, handleSendMessage}) {
   const { parentMessage, setParentMessage } = useContext(ParentMessageContext);
   
   const [threadMessage, setThreadMessage] = useState("");
@@ -69,6 +69,7 @@ export default function MessageList({messages, handleSendMessage}) {
               {messages?.map((element, index) => {
               return (
                   <Message
+                    handleDownloadFile={handleDownloadFile}
                     message={element}
                     key={`message_chat_${index}`}
                   />
@@ -90,11 +91,10 @@ export default function MessageList({messages, handleSendMessage}) {
               {parentMessage['child_messages']?.map((element, index) => {
                 return (
                     <Message
-                    isThread = {true}
-                    message={element}
-                    // sender={element['sender_id']}
-                    // timeStamp={element['created_on']}
-                    key={`message_chat_${index}`}
+                      handleDownloadFile={handleDownloadFile}
+                      isThread = {true}
+                      message={element}
+                      key={`message_chat_${index}`}
                     />
                 );
               })}
