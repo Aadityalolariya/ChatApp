@@ -11,6 +11,7 @@ export const CREATE_CHAT = '/chat/create_chat';
 export const LOGOUT_USER = '/auth/logout';
 export const UPLOAD_DOCUMENT = '/message/upload_document';
 export const GET_DOCUMENT = '/message/get_document';
+export const GET_CONTACTS = '/user/get_contacts';
 
 
 export const FILE_CHIP_NAME_LIMIT = 55;

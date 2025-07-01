@@ -1,6 +1,6 @@
 import React, { createContext, useEffect, useState, useRef } from "react";
 import Cookies from 'js-cookie';
-import { BE_URL, GET_USER_INFO_BY_TOKEN_API } from '../constants.js'
+import { GET_USER_INFO_BY_TOKEN_API } from '../constants.js'
 import { call_api } from '../callwebservice.js';
 export const WebSocketContext = createContext(null);
 export const CurrentUserContext = createContext(null);

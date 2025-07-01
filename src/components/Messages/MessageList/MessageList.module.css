@@ -10,7 +10,9 @@
     flex-direction: row;
 }
 
-
+.messages{
+  width: 100%;
+}
 
 .mainContainer ::-webkit-scrollbar {
   display: none;
@@ -20,6 +22,7 @@
 .messagesWithThread, .threads{
     overflow-y: auto;
     flex: 0 0 50%;
+    width: 100%;
 }
 
 .threads{

@@ -14,6 +14,7 @@ import {
 import LogoutIcon from "@mui/icons-material/Logout";
 import Chip from "@mui/material/Chip";
 import AddIcon from "@mui/icons-material/Add";
+import GroupsIcon from '@mui/icons-material/Groups';
 import AddChatDialog from "./AddChatDialog.js";
 import SearchIcon from "@mui/icons-material/Search";
 import Profile from "./Profile.js";
@@ -32,9 +33,11 @@ import {
   CurrentUserContext,
   ParentMessageContext
 } from "../../context/context.js";
+import AddGroupDialog from "./AddGroupDialog.js";
 
 export default function Chat() {
   const [addChatDialogBoxOpen, setAddChatDialogBoxOpen] = useState(false);
+  const [addGroupDialogBoxOpen, setAddGroupDialogBoxOpen] = useState(false);
   const [addNumber, setAddNumber] = useState("");
   const [addName, setAddName] = useState("");
   const [chatsToDisplay, setChatsToDisplay] = useState([]);
@@ -64,13 +67,23 @@ export default function Chat() {
   }, []);
 
   // open add chat
-  const handleClickOpen = () => {
+  const handleAddChatDialogOpen = () => {
     setAddChatDialogBoxOpen(true);
   };
 
   // close add chat
-  const handleClose = () => {
+  const handleAddChatDialogClose = () => {
     setAddChatDialogBoxOpen(false);
+  };
+
+  // open group chat
+  const handleAddGroupDialogOpen = () => {
+    setAddGroupDialogBoxOpen(true);
+  };
+
+  // close group chat
+  const handleAddGroupDialogClose = () => {
+    setAddGroupDialogBoxOpen(false);
   };
 
   const handleOpenProfile = () => setOpenProfile(true);
@@ -90,7 +103,7 @@ export default function Chat() {
 
   // handle adding the chat
   const handleAddChat = async () => {
-    handleClose();
+    handleAddChatDialogClose();
     if (addNumber.length !== 10) {
       alert("Please enter valid details!");
       return;
@@ -125,7 +138,7 @@ export default function Chat() {
           let chatObj = {
             id: response.data["result"]["id"],
             is_group_chat: false,
-            chat_name: null,
+            chat_name: response.data["result"]["chat_name"],
             created_on: response.data["result"]["created_on"],
             admin_user_id: null,
           };
@@ -138,6 +151,7 @@ export default function Chat() {
       console.log(error);
     }
   };
+
 
   const handleChatClick = async (chat_id) => {
     // set current chat
@@ -179,13 +193,20 @@ export default function Chat() {
         {/* Dialog box displayed when new user is to be added  */}
         <AddChatDialog
           addChatDialogBoxOpen={addChatDialogBoxOpen}
-          handleClose={handleClose}
+          handleClose={handleAddChatDialogClose}
           addNumber={addNumber}
           addName={addName}
           setAddName={setAddName}
           setAddNumber={setAddNumber}
           handleAddChat={handleAddChat}
         />
+
+        <AddGroupDialog
+          addChatDialogBoxOpen={addGroupDialogBoxOpen}
+          setAddChatDialogBoxOpen={setAddChatDialogBoxOpen}
+          handleAddGroupDialogClose={handleAddGroupDialogClose}
+        />
+
 
         {/* Profile modal */}
         <Profile
@@ -224,10 +245,17 @@ export default function Chat() {
         <div className={styles.header}>
           <div>Chats</div>
           <Chip
+            avatar={<GroupsIcon style={{ color: "white" }} />}
+            label="Add Group"
+            color="success"
+            onClick={handleAddGroupDialogOpen}
+            sx={{ fontWeight: "300" }}
+          />
+          <Chip
             avatar={<AddIcon style={{ color: "white" }} />}
             label="Add Chat"
             color="info"
-            onClick={handleClickOpen}
+            onClick={handleAddChatDialogOpen}
             sx={{ fontWeight: "300" }}
           />
         </div>
@@ -266,8 +294,7 @@ export default function Chat() {
                   key={`user${index}`}
                 >
                   <User
-                    name={element["chat_name"]}
-                    number={element["chat_name"]}
+                    user={element}
                     key={index}
                   />
                 </div>
