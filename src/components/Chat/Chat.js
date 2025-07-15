@@ -14,10 +14,9 @@ import {
 import LogoutIcon from "@mui/icons-material/Logout";
 import Chip from "@mui/material/Chip";
 import AddIcon from "@mui/icons-material/Add";
-import GroupsIcon from '@mui/icons-material/Groups';
+import GroupsIcon from "@mui/icons-material/Groups";
 import AddChatDialog from "./AddChatDialog.js";
 import SearchIcon from "@mui/icons-material/Search";
-import Profile from "./Profile.js";
 import Cookies from "js-cookie";
 import User from "./User";
 import { db } from "../firebaseConfig";
@@ -25,13 +24,18 @@ import { doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { openChat } from "../../actions/openChat";
-import { OPEN_CHAT, CREATE_CHAT, LOGOUT_USER } from "../../constants.js";
+import {
+  OPEN_CHAT,
+  CREATE_CHAT,
+  LOGOUT_USER,
+  GET_DOCUMENT,
+} from "../../constants.js";
 import {
   MessagesContext,
   ChatsContext,
   CurrentChatContext,
   CurrentUserContext,
-  ParentMessageContext
+  ParentMessageContext,
 } from "../../context/context.js";
 import AddGroupDialog from "./AddGroupDialog.js";
 
@@ -41,16 +45,54 @@ export default function Chat() {
   const [addNumber, setAddNumber] = useState("");
   const [addName, setAddName] = useState("");
   const [chatsToDisplay, setChatsToDisplay] = useState([]);
-  const [openProfile, setOpenProfile] = useState(false);
-  const [avatarImg, setAvatarImg] = useState("");
+  const [profilePictures, setProfilePictures] = useState({});
   const [searchText, setSearchText] = useState("");
   const { chats, setChats } = useContext(ChatsContext);
   const { messages, setMessages } = useContext(MessagesContext);
   const { currentChat, setCurrentChat } = useContext(CurrentChatContext);
-  const { currentUser, setCurrentUser } = useContext(CurrentUserContext);
-  const {parentMessage, setParentMessage} = useContext(ParentMessageContext);
+  const { parentMessage, setParentMessage } = useContext(ParentMessageContext);
 
   const navigate = useNavigate();
+
+  const fetch_profile_pictures = async (chats) => {
+    console.log("fetching profile pictures : ", chats);
+
+    const promises = chats.map(async (chat) => {
+      if (chat["profile_picture"]) {
+        let url = `${GET_DOCUMENT}/${chat["profile_picture"]}`;
+        let response = await call_api.get(url, {
+          responseType: "blob",
+        });
+        console.log(
+          `get profile picture for user: ${chat["id"]}`,
+          response.data
+        );
+
+        return { id: chat["id"], blob: response.data };
+      }
+      return null;
+    });
+
+    const results = await Promise.all(promises);
+
+    // Filter out null results (users without profile pictures)
+    const validResults = results.filter(Boolean);
+
+    // Construct a new object from all fetched profile pictures
+    const newPictures = validResults.reduce((acc, { id, blob }) => {
+      acc[id] = blob;
+      return acc;
+    }, {});
+
+    console.log("newPictures: ", newPictures)
+
+    // Update state immutably once
+    setProfilePictures((prev) => {
+      const updated = { ...prev, ...newPictures };
+      console.log("Updated profilePictures: ", updated);
+      return updated;
+    });
+  };
 
   useEffect(() => {
     (async () => {
@@ -59,7 +101,12 @@ export default function Chat() {
       if (response.status == 200 && response.data["status"] == "success") {
         let fetched_chats = response.data["result"]["chats"];
         setChats(fetched_chats);
-        console.log("chats: ", chats);
+
+        let users = response.data["result"]["users"];
+        if (users.length > 0) {
+          await fetch_profile_pictures(fetched_chats);
+        }
+        console.log("profile_picture: ", profilePictures);
       } else {
         setChats([]);
       }
@@ -85,9 +132,6 @@ export default function Chat() {
   const handleAddGroupDialogClose = () => {
     setAddGroupDialogBoxOpen(false);
   };
-
-  const handleOpenProfile = () => setOpenProfile(true);
-  const handleCloseProfile = () => setOpenProfile(false);
 
   const handleSearch = () => {
     if (searchText === "") {
@@ -152,14 +196,13 @@ export default function Chat() {
     }
   };
 
-
   const handleChatClick = async (chat_id) => {
     // set current chat
     for (let i = 0; i < chats.length; i++) {
       if (chats[i]["id"] == chat_id) {
         setCurrentChat(chats[i]);
         setParentMessage(null);
-        
+
         console.log("current chat: ", chats[i]);
         break;
       }
@@ -177,15 +220,6 @@ export default function Chat() {
     }
   };
 
-  const handleLogOutClick = async () => {
-    let url = LOGOUT_USER + `/${currentUser.id}`;
-    let response = await call_api.get(url);
-    if (response.status == 200 && response.data["status"] == "success") {
-      Cookies.remove("token");
-      Cookies.remove("User");
-      navigate("/signin");
-    }
-  };
 
   return (
     <>
@@ -206,40 +240,6 @@ export default function Chat() {
           setAddChatDialogBoxOpen={setAddChatDialogBoxOpen}
           handleAddGroupDialogClose={handleAddGroupDialogClose}
         />
-
-
-        {/* Profile modal */}
-        <Profile
-          openProfile={openProfile}
-          handleCloseProfile={handleCloseProfile}
-          avatarImg={avatarImg}
-          setAvatarImg={setAvatarImg}
-        />
-
-        {/* Side bar component */}
-        {/* <div className={styles.sidebar}>
-          <Tooltip title="Profile" placement="right" arrow>
-            <IconButton onClick={() => {}}>
-              <Avatar
-                sx={{
-                  width: "2rem",
-                  height: "2rem",
-                  backgroundColor: "#373737",
-                }}
-                src={""}
-              />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Logout" placement="right" arrow>
-            <IconButton
-              color="error"
-              onClick={() => {}}
-            >
-              <LogoutIcon color="error" />
-            </IconButton>
-          </Tooltip>
-        </div> */}
 
         {/* Components having all the chat list */}
         <div className={styles.header}>
@@ -296,6 +296,7 @@ export default function Chat() {
                   <User
                     user={element}
                     key={index}
+                    profile_picture={profilePictures} // ✔️ this is correct
                   />
                 </div>
               );

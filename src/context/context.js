@@ -11,7 +11,7 @@ export const ParentMessageContext = createContext();
 
 export const GlobalProvider = ({ children }) => {
   const socketRef = useRef(null);
-  const [currentUser, setcurrentUser] = useState({});
+  const [currentUser, setCurrentUser] = useState({});
   const [chats, setChats] = useState([]);
   const [messages, setMessages] = useState([]);
   const [currentChat, setCurrentChat] = useState(null);
@@ -40,10 +40,11 @@ export const GlobalProvider = ({ children }) => {
             "id": response.data['user_id'],
             "first_name": response.data['first_name'],
             "last_name": response.data['last_name'],
-            "phone_number": response.data['phone_number']
+            "phone_number": response.data['phone_number'],
+            "profile_picture": response.data['profile_picture']
           }
           Cookies.set("User", JSON.stringify(User));
-          setcurrentUser(User);
+          setCurrentUser(User);
           let user_id = response.data['user_id']
           socketRef.current = new WebSocket("ws://localhost:8000/ws?user_id=" + user_id);
           socketRef.current.onopen = () => {
@@ -91,7 +92,7 @@ export const GlobalProvider = ({ children }) => {
 
   return (
     <WebSocketContext.Provider value={ socketRef }>
-      <CurrentUserContext.Provider value={{ currentUser, setcurrentUser }}>
+      <CurrentUserContext.Provider value={{ currentUser, setCurrentUser }}>
         <ChatsContext.Provider value={{ chats, setChats }}>
           <MessagesContext.Provider value={{ messages, setMessages }}>
             <CurrentChatContext.Provider value={{ currentChat, setCurrentChat }}>

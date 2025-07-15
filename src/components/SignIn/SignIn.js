@@ -30,7 +30,7 @@ export default function SignIn() {
   const socketRef = useContext(WebSocketContext);
   const { currentChat, setCurrentChat } = useContext(CurrentChatContext);
   const { messages, setMessages } = useContext(MessagesContext);
-  const { currentUser, setcurrentUser } = useContext(CurrentUserContext);
+  const { currentUser, setCurrentUser } = useContext(CurrentUserContext);
   
   const navigate = useNavigate();
 
@@ -66,9 +66,10 @@ export default function SignIn() {
             "id": data['id'],
             "first_name": data['first_name'],
             "last_name": data['last_name'],
-            "phone_number": data['phone_number']
+            "phone_number": data['phone_number'],
+            "profile_picture": data['profile_picture']
           }
-          setcurrentUser(User);
+          setCurrentUser(User);
           Cookies.set("User", JSON.stringify(User));
 
           socketRef.current = new WebSocket("ws://localhost:8000/ws?user_id=" + data['id']);
@@ -125,9 +126,10 @@ export default function SignIn() {
           "id": data['id'],
           "first_name": data['first_name'],
           "last_name": data['last_name'],
-          "phone_number": data['phone_number']
+          "phone_number": data['phone_number'],
+          "profile_picture": data['profile_picture']
         }
-        setcurrentUser(User);
+        setCurrentUser(User);
         Cookies.set("User", JSON.stringify(User));
 
         socketRef.current = new WebSocket("ws://localhost:8000/ws?user_id=" + data['id']);

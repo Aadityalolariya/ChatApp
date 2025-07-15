@@ -7,6 +7,7 @@ export const FETCH_CHATS = '/chat/fetch';
 export const OPEN_CHAT = '/chat/open_chat';
 export const CREATE_MESSAGE = '/message/create_message';
 export const SEARCH_USER = '/user/search_user';
+export const SET_PROFILE_PICTURE = '/user/set_profile_picture';
 export const CREATE_CHAT = '/chat/create_chat';
 export const LOGOUT_USER = '/auth/logout';
 export const UPLOAD_DOCUMENT = '/message/upload_document';

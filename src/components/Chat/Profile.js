@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import Backdrop from "@mui/material/Backdrop";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
@@ -6,7 +6,7 @@ import Fade from "@mui/material/Fade";
 import Typography from "@mui/material/Typography";
 import { Avatar, IconButton, Tooltip } from "@mui/material";
 import { CurrentUserContext } from '../../context/context.js';
-
+import EditAvatar from '../Chat/EditAvatar.js'
 import EditIcon from "@mui/icons-material/Edit";
 // import EditAvatar from "./EditAvatar";
 const profileStyle = {
@@ -32,10 +32,16 @@ export default function Profile({
   handleCloseProfile,
   avatarImg,
   setAvatarImg,
+  imageURL
 }) {
   const [openEditAvatar, setOpenEditAvatar] = useState(false);
-  const { currentUser, setcurrentUser } = useContext(CurrentUserContext);
+  const { currentUser, setCurrentUser } = useContext(CurrentUserContext);
   
+  useEffect(() => {
+
+    console.log("image url: ", imageURL)
+  }, [imageURL]);
+    
   const handleMouseLeave = () => {
     let avatar = document.getElementById("dp");
     avatar.style.opacity = 1;
@@ -47,11 +53,11 @@ export default function Profile({
 
   return (
     <>
-      {/* <EditAvatar
+      <EditAvatar
         setOpenEditAvatar={setOpenEditAvatar}
         openEditAvatar={openEditAvatar}
         setAvatarImg={setAvatarImg}
-      /> */}
+      />
       <Modal
         aria-labelledby="transition-modal-title"
         aria-describedby="transition-modal-description"
@@ -79,7 +85,7 @@ export default function Profile({
                   backgroundColor: "#171717",
                   fontSize: "3rem",
                 }}
-                src={avatarImg}
+                src={imageURL}
               />
             </Tooltip>
 
